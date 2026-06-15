@@ -1,0 +1,6 @@
+export const UserStatus = Object.freeze({
+  ACTIVE: 'ACTIVE',
+  UNVERIFIED: 'UNVERIFIED',
+  BLOCKED: 'BLOCKED_VERIFIED',
+  BLOCKED_VERIFIED: 'BLOCKED_UNVERIFIED'
+});
