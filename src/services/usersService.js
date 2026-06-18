@@ -105,6 +105,3 @@ export const setUserStatus = async (id, status) => {
             status: status
         });
 }
-
-
-
