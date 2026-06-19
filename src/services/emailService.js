@@ -11,15 +11,15 @@ export function sendEmail(recipient, subject, body) {
     });
 
     try {
-        const info = transporter.sendMail({
+        transporter.sendMail({
             from: '"User App" <bot.userapp.zamzhytskaya@gmail.com>',
             to: recipient,
             subject: subject,
             html: body
+        }).then(info => {
+            console.log('Message sent:', JSON.stringify(info));
         });
-
-        console.log('Письмо отправлено:', info.messageId);
     } catch (error) {
-        console.error('Ошибка:', error);
+        console.error('Error:', error);
     }
 }

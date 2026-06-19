@@ -124,7 +124,7 @@ app.post('/api/users', asyncHandler(async (req, res, next) => {
 app.get('/api/users/verify', asyncHandler(async (req, res, next) => {
     const userId = req.query.userId;
     await setUserStatus(userId, UserStatus.ACTIVE);
-    res.redirect(`${ADDRESS}:${config.uiPort}`)
+    res.redirect(`${config.uiUrl}`)
 }));
 
 app.post('/api/users/reset-password', asyncHandler(async (req, res, next) => {
