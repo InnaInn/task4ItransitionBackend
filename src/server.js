@@ -16,6 +16,7 @@ import { config } from './config.js';
 
 const app = express();
 const PORT = config.server.port;
+const BE_URL = config.server.url;
 const sessionMapping = new Map();
 function destroySession(sessionStore, id) {
     const sessionId = sessionMapping.get(id);
@@ -38,7 +39,7 @@ function requireAuth(req, res, next) {
 }
 
 app.use(cors({
-    origin: `${config.server.address}:${config.uiPort}`,
+    origin: `${config.uiUrl}`,
     credentials: true
 }));
 
@@ -122,7 +123,7 @@ app.post('/api/users', asyncHandler(async (req, res, next) => {
 app.get('/api/users/verify', asyncHandler(async (req, res, next) => {
     const userId = req.query.userId;
     await setUserStatus(userId, UserStatus.ACTIVE);
-    res.redirect(`${config.server.address}:${config.uiPort}`)
+    res.redirect(`${ADDRESS}:${config.uiPort}`)
 }));
 
 app.post('/api/users/reset-password', asyncHandler(async (req, res, next) => {
@@ -162,6 +163,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-    console.log(` Сервер запущен: http://localhost:${PORT}`);
-    console.log(` Проверка API: http://localhost:${PORT}/api/health`);
+    console.log(`Health check: ${BE_URL}/api/health`);
 });

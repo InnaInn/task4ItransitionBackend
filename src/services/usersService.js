@@ -62,7 +62,7 @@ export const createUser = async (email, password, username) => {
         <html>
             <body>
                 <div>To verify your email, click
-                    <a href='${config.server.address}:${config.server.port}/api/users/verify?userId=${uuid}'>HERE</a>
+                    <a href='${config.server.url}/api/users/verify?userId=${uuid}'>HERE</a>
                 </div>
             </body>
         </html>`);
