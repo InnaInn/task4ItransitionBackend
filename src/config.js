@@ -6,7 +6,11 @@ export const config = {
   uiUrl: process.env.UI_URL,
   server: {
     port: process.env.PORT,
-    url: process.env.BE_URL
+    url: process.env.BE_URL,
+    cookie: {
+      secure: process.env.COOKIE_SECURE,
+      sameSite: process.env.COOKIE_SAME_SITE
+    }
   },
   database: {
     name: process.env.DB_NAME,
