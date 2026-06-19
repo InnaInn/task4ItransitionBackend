@@ -9,7 +9,8 @@ export function sendEmail(recipient, subject, body) {
         auth: {
             user: config.mail.address,
             pass: config.mail.token
-        }
+        },
+         family: 4 
     });
 
     try {
