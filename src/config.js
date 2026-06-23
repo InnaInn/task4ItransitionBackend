@@ -18,9 +18,5 @@ export const config = {
     port: process.env.DB_PORT,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD
-  },
-  mail: {
-    address: process.env.EMAIL_ADDRESS,
-    token: process.env.EMAIL_TOKEN
   }
 };

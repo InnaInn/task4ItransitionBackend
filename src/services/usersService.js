@@ -1,9 +1,8 @@
+
 import QueryQL from '@truepic/queryql';
 import getPgKnex from '../db/postgresConnection.js'
 import { uuidv7 } from 'uuidv7';
-import { sendEmail } from './emailService.js';
 import crypto from 'crypto';
-import { config } from '../config.js';
 
 const pg = getPgKnex();
 const Users = () => pg('users');
@@ -11,7 +10,6 @@ const Users = () => pg('users');
 function computeSHA3_256(password) {
     return crypto.createHash('sha3-256').update(password).digest('hex');
 }
-
 
 class UserQuerier extends QueryQL {
     defineSchema(schema) {
@@ -58,32 +56,19 @@ export const createUser = async (email, password, username) => {
         status: 'UNVERIFIED'
     });
 
-    sendEmail(email, 'Verify Email Address', `
-        <html>
-            <body>
-                <div>To verify your email, click
-                    <a href='${config.server.url}/api/users/verify?userId=${uuid}'>HERE</a>
-                </div>
-            </body>
-        </html>`);
-
     return uuid;
 }
 
 export const resetPassword = async (email) => {
     const userPassword = uuidv7();
 
-    await Users()
+    const rowsUpdated = await Users()
         .where('email', email)
         .update({
             password: computeSHA3_256(userPassword)
         });
-    sendEmail(email, 'Password Reset', `
-        <html>
-            <body>
-                Your new password is ${userPassword}
-            </body>
-        </html>`);
+
+    return userPassword;
 }
 
 export const deleteUser = async (id) => {
@@ -104,4 +89,16 @@ export const setUserStatus = async (id, status) => {
         .update({
             status: status
         });
+}
+
+export const verifyUser = async (userId) => {
+    const user = await Users().where('id', userId).first();
+    if (!user) {
+        throw new Error('User not found');
+    }
+    if (user.status === 'ACTIVE') {
+        throw new Error('User already verified');
+    }
+    await setUserStatus(userId, 'ACTIVE');
+    return user;
 }

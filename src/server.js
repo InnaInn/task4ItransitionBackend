@@ -9,7 +9,8 @@ import {
     deleteUser,
     setUserStatus,
     deleteUnverifiedUsers,
-    updatelastLoginTime
+    updatelastLoginTime,
+    verifyUser  
 } from './services/usersService.js'
 import { UserStatus } from './services/userStatus.js';
 import { config } from './config.js';
@@ -114,24 +115,56 @@ app.post('/api/users', asyncHandler(async (req, res, next) => {
         return res.status(400).json({ message: 'Email, password and username are required' });
     }
     try {
-        const uuid = await createUser(email, password, username);
-        res.status(201).json({ id: uuid, message: "User Created" });
+        const userId = await createUser(email, password, username);
+        res.status(201).json({ 
+            id: userId, 
+            message: "User Created",
+            needsVerification: true 
+        });
     } catch (exception) {
         res.status(409).json({ message: "User Already Exists" });
     }
 }));
 
-app.get('/api/users/verify', asyncHandler(async (req, res, next) => {
-    const userId = req.query.userId;
-    await setUserStatus(userId, UserStatus.ACTIVE);
-    res.redirect(`${config.uiUrl}`)
+app.post('/api/users/verify', asyncHandler(async (req, res, next) => {
+    const { userId } = req.body;
+    
+    if (!userId) {
+        return res.status(400).json({ message: 'UserId is required' });
+    }
+    
+    try {
+        const user = await verifyUser(userId);
+        res.status(200).json({ 
+            message: "User verified successfully",
+            user: { 
+                id: user.id, 
+                email: user.email 
+            }
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
 }));
 
 app.post('/api/users/reset-password', asyncHandler(async (req, res, next) => {
     const { email } = req.body;
-    await resetPassword(email);
-    res.status(200).json({ message: "Password has been reset" })
+    
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+    }
+    
+    try {
+        const newPassword = await resetPassword(email);
+        res.status(200).json({ 
+            message: "Password has been reset",
+            newPassword: newPassword
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
 }));
+
 
 app.delete('/api/users/unverified', requireAuth, asyncHandler(async (req, res, next) => {
     await deleteUnverifiedUsers();
