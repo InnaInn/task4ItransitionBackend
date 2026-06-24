@@ -1,5 +1,5 @@
 import express from 'express';
-import session from 'express-session';
+import { session } from 'xsess/express';
 import cors from 'cors';
 import {
     getUsers,
@@ -10,7 +10,7 @@ import {
     setUserStatus,
     deleteUnverifiedUsers,
     updatelastLoginTime,
-    verifyUser  
+    verifyUser
 } from './services/usersService.js'
 import { UserStatus } from './services/userStatus.js';
 import { config } from './config.js';
@@ -19,11 +19,12 @@ const app = express();
 const PORT = config.server.port;
 const BE_URL = config.server.url;
 const sessionMapping = new Map();
-function destroySession(sessionStore, id) {
-    const sessionId = sessionMapping.get(id);
-    if (sessionId) {
-        sessionStore.destroy(sessionId);
-        sessionMapping.delete(id);
+
+function destroySession(userId) {
+    const session = sessionMapping.get(userId);
+    if (session) {
+        session.destroy();
+        sessionMapping.delete(userId);
     }
 }
 
@@ -41,23 +42,21 @@ function requireAuth(req, res, next) {
 
 app.use(cors({
     origin: `${config.uiUrl}`,
-    credentials: true
+    credentials: true,
+    exposedHeaders: ['x-session-id']
 }));
 app.set("trust proxy", 1);
 app.use(express.json());
-app.use(
-    session({
-        secret: 'iuewgfowi8shcipoj',
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-            maxAge: 1000 * 60 * 60,
-            httpOnly: true,
-            secure: config.server.cookie.secure === 'true',
-            sameSite: config.server.cookie.sameSite
-        }
-    })
-);
+
+app.use(session({
+    secret: 'iuewgfowi8shcipoj',
+    header: {
+        name: 'x-session-id',
+        policy: 'init'
+    },
+    ttl: 60 * 60,
+    cookie: false
+}));
 
 app.get('/api/health', (req, res, next) => {
     res.json({ status: 'OK', message: 'Server is running' });
@@ -82,7 +81,9 @@ app.post('/api/users/login', asyncHandler(async (req, res, next) => {
         req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 7;
     }
 
-    sessionMapping.set(userId, req.sessionID);
+    await req.session.save();
+
+    sessionMapping.set(userId, req.session);
     await updatelastLoginTime(userId);
 
     res.status(200).json({
@@ -116,10 +117,10 @@ app.post('/api/users', asyncHandler(async (req, res, next) => {
     }
     try {
         const userId = await createUser(email, password, username);
-        res.status(201).json({ 
-            id: userId, 
+        res.status(201).json({
+            id: userId,
             message: "User Created",
-            needsVerification: true 
+            needsVerification: true
         });
     } catch (exception) {
         res.status(409).json({ message: "User Already Exists" });
@@ -128,18 +129,18 @@ app.post('/api/users', asyncHandler(async (req, res, next) => {
 
 app.post('/api/users/verify', asyncHandler(async (req, res, next) => {
     const { userId } = req.body;
-    
+
     if (!userId) {
         return res.status(400).json({ message: 'UserId is required' });
     }
-    
+
     try {
         const user = await verifyUser(userId);
-        res.status(200).json({ 
+        res.status(200).json({
             message: "User verified successfully",
-            user: { 
-                id: user.id, 
-                email: user.email 
+            user: {
+                id: user.id,
+                email: user.email
             }
         });
     } catch (error) {
@@ -149,14 +150,14 @@ app.post('/api/users/verify', asyncHandler(async (req, res, next) => {
 
 app.post('/api/users/reset-password', asyncHandler(async (req, res, next) => {
     const { email } = req.body;
-    
+
     if (!email) {
         return res.status(400).json({ message: 'Email is required' });
     }
-    
+
     try {
         const newPassword = await resetPassword(email);
-        res.status(200).json({ 
+        res.status(200).json({
             message: "Password has been reset",
             newPassword: newPassword
         });
@@ -165,17 +166,16 @@ app.post('/api/users/reset-password', asyncHandler(async (req, res, next) => {
     }
 }));
 
-
 app.delete('/api/users/unverified', requireAuth, asyncHandler(async (req, res, next) => {
     await deleteUnverifiedUsers();
-    destroySession(req.sessionStore, id);
+    destroySession(id);
     res.status(200).json({ message: "Unverified users have been deleted" })
 }));
 
 app.delete('/api/users/:id', requireAuth, asyncHandler(async (req, res, next) => {
     const id = req.params.id;
     await deleteUser(id);
-    destroySession(req.sessionStore, id);
+    destroySession(id);
 
     res.status(200).json({ message: "User has been deleted" })
 }));
@@ -187,7 +187,7 @@ app.patch('/api/users/:id', requireAuth, asyncHandler(async (req, res, next) => 
     if (rowsUpdated === 0) {
         res.status(404).json({ message: "User not found" });
     }
-    destroySession(req.sessionStore, id);
+    destroySession(id);
     res.status(200).json({ message: "Status has been updated" });
 }));
 
