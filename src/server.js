@@ -4,6 +4,7 @@ import cors from 'cors';
 import {
     getUsers,
     getUser,
+    getUserById,
     createUser,
     resetPassword,
     deleteUser,
@@ -58,12 +59,13 @@ app.use(session({
     cookie: false
 }));
 
+
 app.get('/api/health', (req, res, next) => {
     res.json({ status: 'OK', message: 'Server is running' });
 });
 
 app.post('/api/users/login', asyncHandler(async (req, res, next) => {
-    const { email, password, rememberMe } = req.body;
+    const { email, password } = req.body;
     const user = await getUser(email, password);
 
     if (!user) {
@@ -77,9 +79,6 @@ app.post('/api/users/login', asyncHandler(async (req, res, next) => {
 
     req.session.userId = userId;
     req.session.userEmail = user.email;
-    if (rememberMe) {
-        req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 7;
-    }
 
     await req.session.save();
 
@@ -108,6 +107,11 @@ app.get('/logout', (req, res) => {
 app.get('/api/users', requireAuth, asyncHandler(async (req, res, next) => {
     const users = await getUsers(req.query);
     res.json({ data: users });
+}));
+
+app.get('/api/users/me', requireAuth, asyncHandler(async (req, res, next) => {
+    const user = await getUserById(req.session.userId);
+    res.json({ data: user });
 }));
 
 app.post('/api/users', asyncHandler(async (req, res, next) => {

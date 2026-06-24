@@ -37,6 +37,14 @@ export const getUsers = async (query) => {
     return querier.run();
 };
 
+export const getUserById = async (userId) => {
+    return Users()
+        .where({
+            id: userId,
+        })
+        .first();
+};
+
 export const getUser = async (email, password) => {
     return Users()
         .where({
